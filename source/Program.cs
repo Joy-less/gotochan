@@ -4,7 +4,7 @@ namespace Program
     /// By Joyless
     /// </summary>
     public class gotochan {
-        public const string Version = "1.0.3";
+        public const string Version = "1.0.4";
 
         private Dictionary<string, Action> BuiltInMethods = new();
         private List<object[]> Commands = new();
@@ -173,8 +173,18 @@ namespace Program
                                 }
                                 // Subtract operator
                                 else if (Operator == "-=") {
-                                    // Add value to variable
+                                    // Subtract value from variable
                                     Commands.Add(new object[] {"H", Command, Value});
+                                }
+                                // Multiply operator
+                                else if (Operator == "*=") {
+                                    // Multiply variable by value
+                                    Commands.Add(new object[] {"I", Command, Value});
+                                }
+                                // Divide operator
+                                else if (Operator == "/=") {
+                                    // Divide variable by value
+                                    Commands.Add(new object[] {"J", Command, Value});
                                 }
                                 // Unknown operator
                                 else {
@@ -251,17 +261,29 @@ namespace Program
                                 Variables.Remove(Command);
                             }
                         }
-                        // Add value to variable
-                        else if (Command == "G") {
+                        // Operate variable
+                        else if (Command == "G" || Command == "H" || Command == "I" || Command == "J") {
+                            // Get variable and value
                             string VariableIdentifier = (string)CommandInfo[1];
-                            string Value = (string)CommandInfo[2];
-                            Variables[VariableIdentifier] = AddValues(Variables.ContainsKey(VariableIdentifier) ? Variables[VariableIdentifier] : null, GetValue(Value));
-                        }
-                        // Subtract value from variable
-                        else if (Command == "H") {
-                            string VariableIdentifier = (string)CommandInfo[1];
-                            string Value = (string)CommandInfo[2];
-                            Variables[VariableIdentifier] = SubtractValues(Variables.ContainsKey(VariableIdentifier) ? Variables[VariableIdentifier] : null, GetValue(Value));
+                            string ValueString = (string)CommandInfo[2];
+                            object VariableValue = Variables.ContainsKey(VariableIdentifier) ? Variables[VariableIdentifier] : null;
+                            object Value = GetValue(ValueString);
+                            // Add value to variable
+                            if (Command == "G") {
+                                Variables[VariableIdentifier] = AddValues(VariableValue, Value);
+                            }
+                            // Subtract value from variable
+                            else if (Command == "H") {
+                                Variables[VariableIdentifier] = SubtractValues(VariableValue, Value);
+                            }
+                            // Multiply variable by value
+                            else if (Command == "I") {
+                                Variables[VariableIdentifier] = MultiplyValues(VariableValue, Value);
+                            }
+                            // Divide variable by value
+                            else if (Command == "J") {
+                                Variables[VariableIdentifier] = DivideValues(VariableValue, Value);
+                            }
                         }
                     }
                     CurrentLine++;
@@ -427,12 +449,18 @@ namespace Program
         }
 
         private object AddValues(object Value1, object Value2) {
-            return OperateValues(Value1, Value2, 1);
+            return AddSubtractValues(Value1, Value2, 1);
         }
         private object SubtractValues(object Value1, object Value2) {
-            return OperateValues(Value1, Value2, -1);
+            return AddSubtractValues(Value1, Value2, -1);
         }
-        private object OperateValues(object Value1, object Value2, int MultiplySecondValueBy) {
+        private object MultiplyValues(object Value1, object Value2) {
+            return MultiplyDivideValues(Value1, Value2, true);
+        }
+        private object DivideValues(object Value1, object Value2) {
+            return MultiplyDivideValues(Value1, Value2, false);
+        }
+        private object AddSubtractValues(object Value1, object Value2, int MultiplySecondValueBy) {
             // Operate null
             if (Value1 == null || Value2 == null) {
                 Error("Cannot add or subtract null.");
@@ -458,6 +486,31 @@ namespace Program
                 Error($"cannot {(MultiplySecondValueBy == 1 ? "add" : "subtract")} values: '{Value1}', '{Value2}'.");
             }
             return Value1;
+        }
+        private object MultiplyDivideValues(object Value1, object Value2, bool Multiply) {
+            // Operate long and long
+            if (Value1.GetType() == typeof(long) && Value2.GetType() == typeof(long)) {
+                if (Multiply == true) {
+                    return (long)Value1 * (long)Value2;
+                }
+                else {
+                    return (long)Value1 / (long)Value2;
+                }
+            }
+            // Operate double and double
+            else if (double.TryParse(Value1.ToString(), out double Value1Double) && double.TryParse(Value2.ToString(), out double Value2Double)) {
+                if (Multiply == true) {
+                    return Value1Double * Value2Double;
+                }
+                else {
+                    return Value1Double / Value2Double;
+                }
+            }
+            // Error
+            else {
+                Error($"cannot {(Multiply == true ? "multiply" : "divide")} values: '{Value1}', '{Value2}'.");
+                return null;
+            }
         }
 
         private bool CompareValues(object Value1, string ComparisonOperator, object Value2) {
