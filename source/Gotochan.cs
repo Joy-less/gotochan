@@ -4,7 +4,7 @@
     /// This class contains the code that compiles and runs a gotochan program.
     /// </summary>
     public class Gotochan {
-        public const string Version = "1.0.4";
+        public const string Version = "1.0.5";
 
         private BuiltInMethods BuiltInMethods;
         private List<object[]> Commands = new();
