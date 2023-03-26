@@ -72,14 +72,9 @@
                 }
             }
             async Task Error() {
-                if (Gotochan.Variables.ContainsKey("param") && int.TryParse(Gotochan.Variables.ContainsKey("param").ToString(), out int Line)) {
-                    object? MessageObject = Gotochan.Variables["param2"];
-                    string? Message = MessageObject != null ? MessageObject.ToString() : null;
-                    Gotochan.Error(Message);
-                }
-                else {
-                    Gotochan.Error("error param must be an integer.");
-                }
+                object? MessageObject = Gotochan.Variables["param"];
+                string? Message = MessageObject != null ? MessageObject.ToString() : null;
+                Gotochan.Error(Message);
             }
 
             MethodsList.Add("say", Say);
