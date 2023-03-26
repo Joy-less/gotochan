@@ -9,7 +9,7 @@ namespace gotochan
     /// This class contains the code that compiles and runs a gotochan program.
     /// </summary>
     public class Gotochan {
-        public const string Version = "1.0.8";
+        public const string Version = "1.0.9";
 
         private BuiltInMethods BuiltInMethods;
         private List<object[]> Commands = new();
@@ -400,6 +400,10 @@ namespace gotochan
             if (Value1 == null || Value2 == null) {
                 Error("Cannot add or subtract null.");
             }
+            // Add object to string
+            else if (Value1.ToString().All(char.IsDigit) == false || Value2.ToString().All(char.IsDigit) == false) {
+                Value1 = Value1.ToString() + Value2.ToString();
+            }
             // Operate long and long
             else if (Value1.GetType() == typeof(long) && Value2.GetType() == typeof(long)) {
                 Value1 = (long)Value1 + (long)Value2 * MultiplySecondValueBy;
@@ -411,10 +415,6 @@ namespace gotochan
             // Operate long and double
             else if (double.TryParse(Value1.ToString(), out double Value1Double) && double.TryParse(Value2.ToString(), out double Value2Double)) {
                 Value1 = Value1Double + Value2Double * MultiplySecondValueBy;
-            }
-            // Add object to string
-            else if (MultiplySecondValueBy == 1 && (Value1.GetType() == typeof(string) || Value2.GetType() == typeof(string))) {
-                Value1 = Value1.ToString() + Value2.ToString();
             }
             // Error
             else {
