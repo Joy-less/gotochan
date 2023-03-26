@@ -1,4 +1,8 @@
-﻿namespace gotochan
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace gotochan
 {
     /// <summary>
     /// This class contains built-in methods that can be accessed as labels.
@@ -34,7 +38,7 @@
             }
             async Task Wait() {
                 if (Gotochan.Variables.ContainsKey("param") && float.TryParse(Gotochan.Variables["param"].ToString(), out float WaitDuration)) {
-                    Thread.Sleep((int)Math.Round(WaitDuration * 1000));
+                    await Task.Delay((int)Math.Round(WaitDuration * 1000));
                 }
                 else {
                     Gotochan.Error("wait param must be a number.");

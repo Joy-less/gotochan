@@ -1,4 +1,9 @@
-﻿namespace gotochan
+﻿using System.Collections.Generic;
+using System.Linq;
+using System;
+using System.Threading.Tasks;
+
+namespace gotochan
 {
     /// <summary>
     /// This class contains the code that compiles and runs a gotochan program.
@@ -203,7 +208,7 @@
             }
         }
 
-        public async void Run() {
+        public async Task Run() {
             Reset();
             CurrentLine = 0;
             try {
