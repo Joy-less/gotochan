@@ -221,20 +221,20 @@ namespace gotochan
                         if (Command == "A") {
                             string Label = (string)CommandInfo[1];
                             string IfVariable = (string)CommandInfo[2];
-                            ProcessGoto(Label, IfVariable, BuiltInMethods.MethodsList[Label]);
+                            await ProcessGoto(Label, IfVariable, BuiltInMethods.MethodsList[Label]);
                         }
                         // Goto custom label
                         else if (Command == "B") {
                             string Label = (string)CommandInfo[1];
                             int LineOfLabel = (int)CommandInfo[2];
                             string IfVariable = (string)CommandInfo[3];
-                            ProcessGoto(Label, IfVariable, async delegate {CurrentLine = LineOfLabel;});
+                            await ProcessGoto(Label, IfVariable, async delegate {CurrentLine = LineOfLabel;});
                         }
                         // Goto line
                         else if (Command == "C") {
                             int TargetLine = (int)CommandInfo[1];
                             string IfVariable = (string)CommandInfo[2];
-                            ProcessGoto(null, IfVariable, async delegate { CurrentLine = TargetLine - 1; });
+                            await ProcessGoto(null, IfVariable, async delegate { CurrentLine = TargetLine - 1; });
                         }
                         // Backto label
                         else if (Command == "D") {
@@ -314,7 +314,7 @@ namespace gotochan
             }
         }
 
-        private async void ProcessGoto(string Label, string ConditionVariable, Func<Task> GotoAction) {
+        private async Task ProcessGoto(string Label, string ConditionVariable, Func<Task> GotoAction) {
             // Set the current line as the last goto call line
             if (Label != null) {
                 if (LastGotoCallLines.ContainsKey(Label) == false) {
