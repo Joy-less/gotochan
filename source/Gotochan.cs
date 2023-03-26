@@ -4,7 +4,7 @@
     /// This class contains the code that compiles and runs a gotochan program.
     /// </summary>
     public class Gotochan {
-        public const string Version = "1.0.6";
+        public const string Version = "1.0.7";
 
         private BuiltInMethods BuiltInMethods;
         private List<object[]> Commands = new();
@@ -203,7 +203,7 @@
             }
         }
 
-        public void Run() {
+        public async void Run() {
             Reset();
             CurrentLine = 0;
             try {
@@ -223,13 +223,13 @@
                             string Label = (string)CommandInfo[1];
                             int LineOfLabel = (int)CommandInfo[2];
                             string IfVariable = (string)CommandInfo[3];
-                            ProcessGoto(Label, IfVariable, delegate {CurrentLine = LineOfLabel;});
+                            ProcessGoto(Label, IfVariable, async delegate {CurrentLine = LineOfLabel;});
                         }
                         // Goto line
                         else if (Command == "C") {
                             int TargetLine = (int)CommandInfo[1];
                             string IfVariable = (string)CommandInfo[2];
-                            ProcessGoto(null, IfVariable, delegate { CurrentLine = TargetLine - 1; });
+                            ProcessGoto(null, IfVariable, async delegate { CurrentLine = TargetLine - 1; });
                         }
                         // Backto label
                         else if (Command == "D") {
@@ -309,7 +309,7 @@
             }
         }
 
-        private void ProcessGoto(string Label, string ConditionVariable, Action GotoAction) {
+        private async void ProcessGoto(string Label, string ConditionVariable, Func<Task> GotoAction) {
             // Set the current line as the last goto call line
             if (Label != null) {
                 if (LastGotoCallLines.ContainsKey(Label) == false) {
@@ -321,12 +321,12 @@
             }
             // Run the goto if there is no condition
             if (ConditionVariable == null) {
-                GotoAction();
+                await GotoAction();
             }
             // Run the goto if the condition is true
             else if (Variables.ContainsKey(ConditionVariable) && Variables[ConditionVariable].GetType() == typeof(bool)) {
                 if ((bool)Variables[ConditionVariable] == true) {
-                    GotoAction();
+                    await GotoAction();
                 }
             }
             else {

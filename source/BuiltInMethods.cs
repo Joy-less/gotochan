@@ -5,14 +5,14 @@
     /// </summary>
     internal class BuiltInMethods
     {
-        public Dictionary<string, Action> MethodsList = new();
+        public Dictionary<string, Func<Task>> MethodsList = new();
 
         private readonly Gotochan Gotochan;
 
         public BuiltInMethods(Gotochan GotochanInstance) {
             Gotochan = GotochanInstance;
 
-            void Say() {
+            async Task Say() {
                 if (Gotochan.Variables.ContainsKey("param")) {
                     object Output = Gotochan.Variables["param"];
                     if (Output.Equals(true)) {
@@ -26,13 +26,13 @@
                     }
                 }
             }
-            void Clear() {
+            async Task Clear() {
                 Console.Clear();
             }
-            void GetTime() {
+            async Task GetTime() {
                 Gotochan.Variables["result"] = DateTimeOffset.Now.ToUnixTimeMilliseconds() / 1000d;
             }
-            void Wait() {
+            async Task Wait() {
                 if (Gotochan.Variables.ContainsKey("param") && float.TryParse(Gotochan.Variables["param"].ToString(), out float WaitDuration)) {
                     Thread.Sleep((int)Math.Round(WaitDuration * 1000));
                 }
@@ -40,7 +40,7 @@
                     Gotochan.Error("wait param must be a number.");
                 }
             }
-            void Input() {
+            async Task Input() {
                 while (true) {
                     ConsoleKeyInfo GetKey = Console.ReadKey(true);
                     if (GetKey.Key == ConsoleKey.Enter) {
@@ -55,10 +55,10 @@
                     }
                 }
             }
-            void HasInput() {
+            async Task HasInput() {
                 Gotochan.Variables["result"] = Console.KeyAvailable;
             }
-            void Random() {
+            async Task Random() {
                 if (Gotochan.Variables.ContainsKey("param") && long.TryParse(Gotochan.Variables["param"].ToString(), out long RandomMaximum)) {
                     if (RandomMaximum >= 0) {
                         Gotochan.Variables["result"] = new Random().NextInt64(0, RandomMaximum + 1);
@@ -71,7 +71,7 @@
                     Gotochan.Error("random param must be an integer.");
                 }
             }
-            void Error() {
+            async Task Error() {
                 if (Gotochan.Variables.ContainsKey("param") && int.TryParse(Gotochan.Variables.ContainsKey("param").ToString(), out int Line)) {
                     object? MessageObject = Gotochan.Variables["param2"];
                     string? Message = MessageObject != null ? MessageObject.ToString() : null;
