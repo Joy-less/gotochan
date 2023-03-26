@@ -4,7 +4,7 @@
     /// This class contains the code that compiles and runs a gotochan program.
     /// </summary>
     public class Gotochan {
-        public const string Version = "1.0.5";
+        public const string Version = "1.0.6";
 
         private BuiltInMethods BuiltInMethods;
         private List<object[]> Commands = new();
@@ -97,7 +97,7 @@
                                 // Try to get the target line number
                                 if (int.TryParse(Parameter, out int GotoLine) == true) {
                                     if (Modifier == 0) {
-                                        Commands.Add(new object[] {"C", GotoLine, GotoConditionVariable});
+                                        Commands.Add(new object[] {"C", GotoLine - 1, GotoConditionVariable});
                                     }
                                     else if (Modifier == 1) {
                                         Commands.Add(new object[] {"C", CurrentLine + GotoLine, GotoConditionVariable});
@@ -480,18 +480,8 @@
             return ComparisonResult;
         }
 
-        internal void Error(string? ErrorMessage = null) {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine();
-            Console.Write($"there was an error on line {CurrentLine + 1}");
-            if (ErrorMessage != null) {
-                Console.Write(":\n    " + ErrorMessage);
-            }
-            else {
-                Console.Write(".");
-            }
-            Console.ReadLine();
-            Environment.Exit(0);
+        internal void Error(string? Message = null) {
+            BuiltInMethods.Error(CurrentLine, Message);
         }
     }
 }

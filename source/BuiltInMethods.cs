@@ -71,6 +71,16 @@
                     Gotochan.Error("random param must be an integer.");
                 }
             }
+            void Error() {
+                if (Gotochan.Variables.ContainsKey("param") && int.TryParse(Gotochan.Variables.ContainsKey("param").ToString(), out int Line)) {
+                    object? MessageObject = Gotochan.Variables["param2"];
+                    string? Message = MessageObject != null ? MessageObject.ToString() : null;
+                    Gotochan.Error(Message);
+                }
+                else {
+                    Gotochan.Error("error param must be an integer.");
+                }
+            }
 
             MethodsList.Add("say", Say);
             MethodsList.Add("clear", Clear);
@@ -79,6 +89,21 @@
             MethodsList.Add("input", Input);
             MethodsList.Add("hasinput", HasInput);
             MethodsList.Add("random", Random);
+            MethodsList.Add("error", Error);
+        }
+
+        public void Error(int Line, string? Message) {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine();
+            Console.Write($"there was an error on line {Line + 1}");
+            if (Message != null) {
+                Console.Write(":\n    " + Message);
+            }
+            else {
+                Console.Write(".");
+            }
+            Console.ReadLine();
+            Environment.Exit(0);
         }
     }
 }
