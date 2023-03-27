@@ -9,7 +9,7 @@ namespace gotochan
     /// This class contains the code that compiles and runs a gotochan program.
     /// </summary>
     public class Gotochan {
-        public const string Version = "1.0.9";
+        public const string Version = "1.0.10";
 
         private BuiltInMethods BuiltInMethods;
         private List<object[]> Commands = new();
@@ -34,12 +34,14 @@ namespace gotochan
             // Iterate through each line of code
             for (CurrentLine = 0; CurrentLine < CodeLines.Length; CurrentLine++) {
                 try {
-                    string Line = CodeLines[CurrentLine].Trim(' ');
+                    string Line = CodeLines[CurrentLine];
                     // Ignore comments
                     int IndexOfComment = Line.IndexOf('#');
                     if (IndexOfComment >= 0) {
                         Line = Line.Substring(0, IndexOfComment);
                     }
+                    // Trim spaces
+                    Line = Line.Trim(' ');
                     // Check if the line is not empty
                     if (string.IsNullOrWhiteSpace(Line) == false) {
                         string[] Words = Line.Split(' ');
@@ -249,16 +251,18 @@ namespace gotochan
                         // Set variable to equation result
                         else if (Command == "E") {
                             string VariableIdentifier = (string)CommandInfo[1];
-                            string Value = (string)CommandInfo[2];
+                            string ValueString = (string)CommandInfo[2];
                             string SecondOperator = (string)CommandInfo[3];
-                            string SecondValue = (string)CommandInfo[4];
-                            Variables[VariableIdentifier] = CompareValues(GetValue(Value), SecondOperator, GetValue(SecondValue));
+                            string SecondValueString = (string)CommandInfo[4];
+                            object? Value = InitialiseValueFromString(ValueString);
+                            object? SecondValue = InitialiseValueFromString(SecondValueString);
+                            Variables[VariableIdentifier] = CompareValues(Value, SecondOperator, SecondValue);
                         }
                         // Set variable to value
                         else if (Command == "F") {
                             string VariableIdentifier = (string)CommandInfo[1];
                             string Value = (string)CommandInfo[2];
-                            object DynamicValue = GetValue(Value);
+                            object? DynamicValue = InitialiseValueFromString(Value);
                             if (DynamicValue != null) {
                                 Variables[VariableIdentifier] = DynamicValue;
                             }
@@ -272,7 +276,9 @@ namespace gotochan
                             string VariableIdentifier = (string)CommandInfo[1];
                             string ValueString = (string)CommandInfo[2];
                             object VariableValue = Variables.ContainsKey(VariableIdentifier) ? Variables[VariableIdentifier] : null;
-                            object Value = GetValue(ValueString);
+                            object Value = InitialiseValueFromString(ValueString);
+                            Value ??= "null";
+                            VariableValue ??= "null";
                             // Add value to variable
                             if (Command == "G") {
                                 Variables[VariableIdentifier] = AddValues(VariableValue, Value);
@@ -344,14 +350,10 @@ namespace gotochan
             LastGotoCallLines.Clear();
         }
 
-        private object GetValue(string Value) {
+        private object? InitialiseValueFromString(string Value) {
             // String
             if (Value.StartsWith("~")) {
                 return Value.TrimStart('~').Replace('~', ' ').Replace("\\n", "\n").Replace("\\h", "#");
-            }
-            // Long
-            else if (long.TryParse(Value, out long LongResult)) {
-                return LongResult;
             }
             // Double
             else if (double.TryParse(Value, out double DoubleResult)) {
@@ -384,10 +386,25 @@ namespace gotochan
         }
 
         private object AddValues(object Value1, object Value2) {
-            return AddSubtractValues(Value1, Value2, 1);
+            // Operate double and double
+            if (Value1.GetType() == typeof(double) && Value2.GetType() == typeof(double)) {
+                return (double)Value1 + (double)Value2;
+            }
+            // Add object to string
+            else {
+                return Value1.ToString() + Value2.ToString();
+            }
         }
         private object SubtractValues(object Value1, object Value2) {
-            return AddSubtractValues(Value1, Value2, -1);
+            // Operate double and double
+            if (Value1.GetType() == typeof(double) && Value2.GetType() == typeof(double)) {
+                return (double)Value1 - (double)Value2;
+            }
+            // Error
+            else {
+                Error($"cannot subtract values of type '{Value1.GetType()}' and '{Value2.GetType()}'");
+                return false;
+            }
         }
         private object MultiplyValues(object Value1, object Value2) {
             return MultiplyDivideValues(Value1, Value2, true);
@@ -395,63 +412,38 @@ namespace gotochan
         private object DivideValues(object Value1, object Value2) {
             return MultiplyDivideValues(Value1, Value2, false);
         }
-        private object AddSubtractValues(object Value1, object Value2, int MultiplySecondValueBy) {
-            // Operate null
-            if (Value1 == null || Value2 == null) {
-                Error("Cannot add or subtract null.");
-            }
-            // Add object to string
-            else if (Value1.ToString().All(char.IsDigit) == false || Value2.ToString().All(char.IsDigit) == false) {
-                Value1 = Value1.ToString() + Value2.ToString();
-            }
-            // Operate long and long
-            else if (Value1.GetType() == typeof(long) && Value2.GetType() == typeof(long)) {
-                Value1 = (long)Value1 + (long)Value2 * MultiplySecondValueBy;
-            }
-            // Operate double and double
-            else if (Value1.GetType() == typeof(double) && Value2.GetType() == typeof(double)) {
-                Value1 = (double)Value1 + (double)Value2 * MultiplySecondValueBy;
-            }
-            // Operate long and double
-            else if (double.TryParse(Value1.ToString(), out double Value1Double) && double.TryParse(Value2.ToString(), out double Value2Double)) {
-                Value1 = Value1Double + Value2Double * MultiplySecondValueBy;
-            }
-            // Error
-            else {
-                Error($"cannot {(MultiplySecondValueBy == 1 ? "add" : "subtract")} values: '{Value1}', '{Value2}'.");
-            }
-            return Value1;
-        }
         private object MultiplyDivideValues(object Value1, object Value2, bool Multiply) {
-            // Operate long and long
-            if (Value1.GetType() == typeof(long) && Value2.GetType() == typeof(long)) {
+            if (Value1.GetType() == typeof(double) && Value2.GetType() == typeof(double)) {
                 if (Multiply == true) {
-                    return (long)Value1 * (long)Value2;
+                    return (double)Value1 * (double)Value2;
                 }
                 else {
-                    return (long)Value1 / (long)Value2;
-                }
-            }
-            // Operate double and double
-            else if (double.TryParse(Value1.ToString(), out double Value1Double) && double.TryParse(Value2.ToString(), out double Value2Double)) {
-                if (Multiply == true) {
-                    return Value1Double * Value2Double;
-                }
-                else {
-                    return Value1Double / Value2Double;
+                    return (double)Value1 / (double)Value2;
                 }
             }
             // Error
             else {
-                Error($"cannot {(Multiply == true ? "multiply" : "divide")} values: '{Value1}', '{Value2}'.");
-                return null;
+                Error($"cannot {(Multiply == true ? "multiply" : "divide")} values of type '{Value1.GetType()}' and '{Value2.GetType()}'.");
+                return false;
             }
         }
 
-        private bool CompareValues(object Value1, string ComparisonOperator, object Value2) {
+        private bool CompareValues(object? Value1, string ComparisonOperator, object? Value2) {
             bool ComparisonResult = false;
+            // Compare null equality
+            if (Value1 == null || Value2 == null) {
+                if (ComparisonOperator == "==") {
+                    ComparisonResult = Value1 == Value2;
+                }
+                else if (ComparisonOperator == "!=") {
+                    ComparisonResult = Value1 != Value2;
+                }
+                else {
+                    Error($"cannot compare null values with operator '{ComparisonOperator}'.");
+                }
+            }
             // Compare equality
-            if (ComparisonOperator == "==") {
+            else if (ComparisonOperator == "==") {
                 ComparisonResult = Value1.Equals(Value2);
             }
             else if (ComparisonOperator == "!=") {
@@ -459,23 +451,26 @@ namespace gotochan
             }
             // Arithmetic operators
             else if (ComparisonOperator == ">" || ComparisonOperator == "<" || ComparisonOperator == ">=" || ComparisonOperator == "<=") {
-                if (float.TryParse(Value1.ToString(), out float Value1Float) && float.TryParse(Value2.ToString(), out float Value2Float)) {
+                if (Value1.GetType() == typeof(double) && Value2.GetType() == typeof(double)) {
                     // Greater than
                     if (ComparisonOperator == ">") {
-                        ComparisonResult = Value1Float > Value2Float;
+                        ComparisonResult = (double)Value1 > (double)Value2;
                     }
                     // Less than
                     else if (ComparisonOperator == "<") {
-                        ComparisonResult = Value1Float < Value2Float;
+                        ComparisonResult = (double)Value1 < (double)Value2;
                     }
                     // Greater than or equal to
                     else if (ComparisonOperator == ">=") {
-                        ComparisonResult = Value1Float >= Value2Float;
+                        ComparisonResult = (double)Value1 >= (double)Value2;
                     }
                     // Less than or equal to
                     else if (ComparisonOperator == "<=") {
-                        ComparisonResult = Value1Float <= Value2Float;
+                        ComparisonResult = (double)Value1 <= (double)Value2;
                     }
+                }
+                else {
+                    Error($"cannot compare types '{Value1.GetType()}' and '{Value2.GetType()}' with operator '{ComparisonOperator}'.");
                 }
             }
             // Error

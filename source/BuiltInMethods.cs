@@ -65,7 +65,7 @@ namespace gotochan
             async Task Random() {
                 if (Gotochan.Variables.ContainsKey("param") && long.TryParse(Gotochan.Variables["param"].ToString(), out long RandomMaximum)) {
                     if (RandomMaximum >= 0) {
-                        Gotochan.Variables["result"] = new Random().NextInt64(0, RandomMaximum + 1);
+                        Gotochan.Variables["result"] = double.Parse(new Random().NextInt64(0, RandomMaximum + 1).ToString());
                     }
                     else {
                         Gotochan.Error("random param cannot be negative.");
@@ -80,6 +80,41 @@ namespace gotochan
                 string? Message = MessageObject != null ? MessageObject.ToString() : null;
                 Gotochan.Error(Message);
             }
+            async Task GetType() {
+                if (Gotochan.Variables.ContainsKey("param")) {
+                    Dictionary<Type, string> TypeNames = new() {
+                        {typeof(string), "string"},
+                        {typeof(double), "number"},
+                        {typeof(bool), "bool"},
+                    };
+                    Type ParamType = Gotochan.Variables["param"].GetType();
+                    if (TypeNames.ContainsKey(ParamType)) {
+                        Gotochan.Variables["result"] = TypeNames[ParamType];
+                    }
+                    else {
+                        Gotochan.Variables["result"] = "unknown";
+                    }
+                }
+                else {
+                    Gotochan.Variables["result"] = "null";
+                }
+            }
+            async Task Truncate() {
+                if (Gotochan.Variables.ContainsKey("param") && double.TryParse(Gotochan.Variables["param"].ToString(), out double TruncateParam)) {
+                    Gotochan.Variables["result"] = Math.Truncate(TruncateParam);
+                }
+                else {
+                    Gotochan.Error("truncate param must be a number.");
+                }
+            }
+            async Task Round() {
+                if (Gotochan.Variables.ContainsKey("param") && double.TryParse(Gotochan.Variables["param"].ToString(), out double RoundParam)) {
+                    Gotochan.Variables["result"] = Math.Round(RoundParam);
+                }
+                else {
+                    Gotochan.Error("round param must be a number.");
+                }
+            }
 
             MethodsList.Add("say", Say);
             MethodsList.Add("clear", Clear);
@@ -89,6 +124,9 @@ namespace gotochan
             MethodsList.Add("hasinput", HasInput);
             MethodsList.Add("random", Random);
             MethodsList.Add("error", Error);
+            MethodsList.Add("gettype", GetType);
+            MethodsList.Add("truncate", Truncate);
+            MethodsList.Add("round", Round);
         }
 
         public void Error(int Line, string? Message) {
