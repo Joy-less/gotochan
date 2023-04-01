@@ -24,7 +24,6 @@
             // Compile the code
             Gotochan GotochanInstance = new();
             GotochanInstance.Compile(Code);
-            GotochanInstance.DisplayCompiledCode();
 
             // Run the code
             ClearInput();
