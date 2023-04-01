@@ -9,7 +9,7 @@ namespace gotochan
     /// This class contains the code that compiles and runs a gotochan program.
     /// </summary>
     public class Gotochan {
-        public const string Version = "1.0.10";
+        public const string Version = "1.0.11";
 
         private BuiltInMethods BuiltInMethods;
         private List<object[]> Commands = new();
@@ -215,7 +215,7 @@ namespace gotochan
             CurrentLine = 0;
             try {
                 while (CurrentLine < Commands.Count) {
-                    if (Commands.Count > CurrentLine && Commands[CurrentLine] != null) {
+                    if (Commands[CurrentLine] != null) {
                         object[] CommandInfo = Commands[CurrentLine];
                         string Command = (string)CommandInfo[0];
 
@@ -223,20 +223,26 @@ namespace gotochan
                         if (Command == "A") {
                             string Label = (string)CommandInfo[1];
                             string IfVariable = (string)CommandInfo[2];
-                            await ProcessGoto(Label, IfVariable, BuiltInMethods.MethodsList[Label]);
+                            if (ProcessGoto(Label, IfVariable) == true) {
+                                await BuiltInMethods.MethodsList[Label]();
+                            }
                         }
                         // Goto custom label
                         else if (Command == "B") {
                             string Label = (string)CommandInfo[1];
                             int LineOfLabel = (int)CommandInfo[2];
                             string IfVariable = (string)CommandInfo[3];
-                            await ProcessGoto(Label, IfVariable, async delegate {CurrentLine = LineOfLabel;});
+                            if (ProcessGoto(Label, IfVariable) == true) {
+                                CurrentLine = LineOfLabel;
+                            }
                         }
                         // Goto line
                         else if (Command == "C") {
                             int TargetLine = (int)CommandInfo[1];
                             string IfVariable = (string)CommandInfo[2];
-                            await ProcessGoto(null, IfVariable, async delegate { CurrentLine = TargetLine - 1; });
+                            if (ProcessGoto(null, IfVariable) == true) {
+                                CurrentLine = TargetLine - 1;
+                            }
                         }
                         // Backto label
                         else if (Command == "D") {
@@ -275,8 +281,8 @@ namespace gotochan
                             // Get variable and value
                             string VariableIdentifier = (string)CommandInfo[1];
                             string ValueString = (string)CommandInfo[2];
-                            object VariableValue = Variables.ContainsKey(VariableIdentifier) ? Variables[VariableIdentifier] : null;
-                            object Value = InitialiseValueFromString(ValueString);
+                            Variables.TryGetValue(VariableIdentifier, out object? VariableValue);
+                            object? Value = InitialiseValueFromString(ValueString);
                             Value ??= "null";
                             VariableValue ??= "null";
                             // Add value to variable
@@ -320,7 +326,7 @@ namespace gotochan
             }
         }
 
-        private async Task ProcessGoto(string Label, string ConditionVariable, Func<Task> GotoAction) {
+        private bool ProcessGoto(string Label, string ConditionVariable) {
             // Set the current line as the last goto call line
             if (Label != null) {
                 if (LastGotoCallLines.ContainsKey(Label) == false) {
@@ -332,17 +338,18 @@ namespace gotochan
             }
             // Run the goto if there is no condition
             if (ConditionVariable == null) {
-                await GotoAction();
+                return true;
             }
             // Run the goto if the condition is true
-            else if (Variables.ContainsKey(ConditionVariable) && Variables[ConditionVariable].GetType() == typeof(bool)) {
-                if ((bool)Variables[ConditionVariable] == true) {
-                    await GotoAction();
+            else if (Variables.TryGetValue(ConditionVariable, out object? ConditionValue)) {
+                if (Variables[ConditionVariable].Equals(true)) {
+                    return true;
                 }
             }
             else {
                 Error($"no boolean variable found with identifier '{ConditionVariable}'.");
             }
+            return false;
         }
 
         private void Reset() {
@@ -352,7 +359,7 @@ namespace gotochan
 
         private object? InitialiseValueFromString(string Value) {
             // String
-            if (Value.StartsWith("~")) {
+            if (Value.StartsWith('~')) {
                 return Value.TrimStart('~').Replace('~', ' ').Replace("\\n", "\n").Replace("\\h", "#");
             }
             // Double
