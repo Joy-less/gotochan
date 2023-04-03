@@ -27,7 +27,7 @@
 
             // Run the code
             ClearInput();
-            GotochanInstance.Run();
+            GotochanInstance.Run().Wait();
 
             // End of code, wait for user to press enter
             Console.WriteLine("\n");
