@@ -345,6 +345,9 @@ namespace gotochan
                 if (Variables[ConditionVariable].Equals(true)) {
                     return true;
                 }
+                else if (Variables[ConditionVariable].Equals(false) == false) {
+                    Error($"{ConditionVariable} is not boolean.");
+                }
             }
             else {
                 Error($"no boolean variable found with identifier '{ConditionVariable}'.");
