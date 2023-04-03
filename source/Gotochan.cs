@@ -273,7 +273,7 @@ namespace gotochan
                                 Variables[VariableIdentifier] = DynamicValue;
                             }
                             else {
-                                Variables.Remove(Command);
+                                Variables.Remove(VariableIdentifier);
                             }
                         }
                         // Operate variable
@@ -360,7 +360,7 @@ namespace gotochan
         private object? InitialiseValueFromString(string Value) {
             // String
             if (Value.StartsWith('~')) {
-                return Value.TrimStart('~').Replace('~', ' ').Replace("\\n", "\n").Replace("\\h", "#");
+                return Value.Substring(1).Replace('~', ' ').Replace("\\n", "\n").Replace("\\h", "#");
             }
             // Double
             else if (double.TryParse(Value, out double DoubleResult)) {

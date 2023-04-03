@@ -99,6 +99,14 @@ namespace gotochan
                     Gotochan.Variables["result"] = "null";
                 }
             }
+            async Task Length() {
+                if (Gotochan.Variables.ContainsKey("param")) {
+                    Gotochan.Variables["result"] = Convert.ToDouble(Gotochan.Variables["param"].ToString().Length);
+                }
+                else {
+                    Gotochan.Error("length param must not be null.");
+                }
+            }
             async Task Truncate() {
                 if (Gotochan.Variables.ContainsKey("param") && double.TryParse(Gotochan.Variables["param"].ToString(), out double TruncateParam)) {
                     Gotochan.Variables["result"] = Math.Truncate(TruncateParam);
@@ -127,6 +135,7 @@ namespace gotochan
             MethodsList.Add("gettype", GetType);
             MethodsList.Add("truncate", Truncate);
             MethodsList.Add("round", Round);
+            MethodsList.Add("length", Length);
         }
 
         public void Error(int Line, string? Message) {
