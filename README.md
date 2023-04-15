@@ -1,4 +1,4 @@
-![alt text](assets/gotochan%20logo.png)
+![gotochan logo](assets/gotochan%20logo.png)
 
 everyones least favourite programming language!
 
