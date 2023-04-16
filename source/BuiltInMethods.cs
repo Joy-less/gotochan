@@ -100,27 +100,43 @@ namespace gotochan
                 }
             }
             async Task Length() {
-                if (Gotochan.Variables.ContainsKey("param")) {
-                    Gotochan.Variables["result"] = Convert.ToDouble(Gotochan.Variables["param"].ToString().Length);
+                if (Gotochan.Variables.TryGetValue("param", out object Param)) {
+                    Gotochan.Variables["result"] = Convert.ToDouble(Param.ToString().Length);
                 }
                 else {
                     Gotochan.Error("length param must not be null.");
                 }
             }
             async Task Truncate() {
-                if (Gotochan.Variables.ContainsKey("param") && double.TryParse(Gotochan.Variables["param"].ToString(), out double TruncateParam)) {
-                    Gotochan.Variables["result"] = Math.Truncate(TruncateParam);
+                if (Gotochan.Variables.ContainsKey("param") && double.TryParse(Gotochan.Variables["param"].ToString(), out double Param)) {
+                    Gotochan.Variables["result"] = Math.Truncate(Param);
                 }
                 else {
                     Gotochan.Error("truncate param must be a number.");
                 }
             }
             async Task Round() {
-                if (Gotochan.Variables.ContainsKey("param") && double.TryParse(Gotochan.Variables["param"].ToString(), out double RoundParam)) {
-                    Gotochan.Variables["result"] = Math.Round(RoundParam);
+                if (Gotochan.Variables.ContainsKey("param") && double.TryParse(Gotochan.Variables["param"].ToString(), out double Param)) {
+                    Gotochan.Variables["result"] = Math.Round(Param);
                 }
                 else {
                     Gotochan.Error("round param must be a number.");
+                }
+            }
+            async Task Floor() {
+                if (Gotochan.Variables.ContainsKey("param") && double.TryParse(Gotochan.Variables["param"].ToString(), out double Param)) {
+                    Gotochan.Variables["result"] = Math.Floor(Param);
+                }
+                else {
+                    Gotochan.Error("floor param must be a number.");
+                }
+            }
+            async Task Ceiling() {
+                if (Gotochan.Variables.ContainsKey("param") && double.TryParse(Gotochan.Variables["param"].ToString(), out double Param)) {
+                    Gotochan.Variables["result"] = Math.Ceiling(Param);
+                }
+                else {
+                    Gotochan.Error("ceiling param must be a number.");
                 }
             }
 
@@ -136,6 +152,8 @@ namespace gotochan
             MethodsList.Add("truncate", Truncate);
             MethodsList.Add("round", Round);
             MethodsList.Add("length", Length);
+            MethodsList.Add("floor", Floor);
+            MethodsList.Add("ceiling", Ceiling);
         }
 
         public void Error(int Line, string? Message) {

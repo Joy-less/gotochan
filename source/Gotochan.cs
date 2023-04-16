@@ -6,13 +6,12 @@ using System.Threading.Tasks;
 namespace gotochan
 {
     /// <summary>
-    /// This class contains the code that compiles and runs a gotochan program.
+    /// This class contains the code that parses and runs a gotochan program.
     /// </summary>
     public class Gotochan {
-        public const string Version = "1.0.14";
+        public const string Version = "1.1.0";
 
-        private BuiltInMethods BuiltInMethods;
-        private List<object[]> Commands = new();
+        private readonly BuiltInMethods BuiltInMethods;
 
         internal Dictionary<string, object> Variables = new();
         private Dictionary<string, int> LastGotoCallLines = new();
@@ -23,8 +22,9 @@ namespace gotochan
             BuiltInMethods = new(this);
         }
 
-        public void Compile(string Code) {
+        public List<object[]> Parse(string Code) {
             Reset();
+            List<object[]> Commands = new();
             // Remove carriage returns
             Code = Code.Replace("\r", "");
             // Remove tabs
@@ -139,10 +139,10 @@ namespace gotochan
                                 if (Words.Length == 1) {
                                     Error("labels must have an identifier.");
                                 }
-                                // Check if the label identifier is only letters
+                                // Check if the label identifier is valid
                                 string LabelIdentifier = Words[1];
-                                if (LabelIdentifier.All(char.IsLetter) == false) {
-                                    Error("label identifiers can only have letters.");
+                                if (IsVariableOrLabelNameValid(LabelIdentifier) == false) {
+                                    Error($"'{LabelIdentifier}' is not a valid label identifier.");
                                 }
                                 Commands.Add(null);
                                 break;
@@ -158,6 +158,11 @@ namespace gotochan
                                 else if (Words.Length == 4) {
                                     Error("comparison operator must be followed by a value.");
                                 }
+                                // Check if variable name is valid
+                                if (IsVariableOrLabelNameValid(Command) == false) {
+                                    Error($"variable identifier '{Command}' is invalid.");
+                                }
+                                // Get operator and value
                                 string Operator = Words[1];
                                 string Value = Words[2];
                                 // Set operator
@@ -173,29 +178,22 @@ namespace gotochan
                                         Commands.Add(new object[] {"F", Command, Value});
                                     }
                                 }
-                                // Add operator
-                                else if (Operator == "+=") {
-                                    // Add value to variable
-                                    Commands.Add(new object[] {"G", Command, Value});
-                                }
-                                // Subtract operator
-                                else if (Operator == "-=") {
-                                    // Subtract value from variable
-                                    Commands.Add(new object[] {"H", Command, Value});
-                                }
-                                // Multiply operator
-                                else if (Operator == "*=") {
-                                    // Multiply variable by value
-                                    Commands.Add(new object[] {"I", Command, Value});
-                                }
-                                // Divide operator
-                                else if (Operator == "/=") {
-                                    // Divide variable by value
-                                    Commands.Add(new object[] {"J", Command, Value});
-                                }
-                                // Unknown operator
                                 else {
-                                    Error($"unknown set operator: '{Operator}'.");
+                                    // Add / Subtract / Multiply / Divide / Modulo / Exponentiate
+                                    Dictionary<string, string> Functions = new() {
+                                        {"+=", "G"},
+                                        {"-=", "H"},
+                                        {"*=", "I"},
+                                        {"/=", "J"},
+                                        {"%=", "K"},
+                                        {"^=", "L"},
+                                    };
+                                    if (Functions.TryGetValue(Words[1], out string Function)) {
+                                        Commands.Add(new object[] {Function, Command, Value});
+                                    }
+                                    else {
+                                        Error($"unknown variable operator: '{Operator}'.");
+                                    }
                                 }
                                 break;
                         }
@@ -208,11 +206,22 @@ namespace gotochan
                     Error();
                 }
             }
+            return Commands;
         }
 
-        public async Task Run() {
+        public async Task Run(List<object[]> Commands) {
             Reset();
             CurrentLine = 0;
+
+            Dictionary<string, Func<object, object, object>> VariableOperationCommands = new() {
+                {"G", AddValues},
+                {"H", SubtractValues},
+                {"I", MultiplyValues},
+                {"J", DivideValues},
+                {"K", ModuloValues},
+                {"L", ExponentiateValues},
+            };
+
             try {
                 while (CurrentLine < Commands.Count) {
                     if (Commands[CurrentLine] != null) {
@@ -277,7 +286,7 @@ namespace gotochan
                             }
                         }
                         // Operate variable
-                        else if (Command == "G" || Command == "H" || Command == "I" || Command == "J") {
+                        else if (VariableOperationCommands.ContainsKey(Command) == true) {
                             // Get variable and value
                             string VariableIdentifier = (string)CommandInfo[1];
                             string ValueString = (string)CommandInfo[2];
@@ -285,22 +294,7 @@ namespace gotochan
                             object? Value = InitialiseValueFromString(ValueString);
                             Value ??= "null";
                             VariableValue ??= "null";
-                            // Add value to variable
-                            if (Command == "G") {
-                                Variables[VariableIdentifier] = AddValues(VariableValue, Value);
-                            }
-                            // Subtract value from variable
-                            else if (Command == "H") {
-                                Variables[VariableIdentifier] = SubtractValues(VariableValue, Value);
-                            }
-                            // Multiply variable by value
-                            else if (Command == "I") {
-                                Variables[VariableIdentifier] = MultiplyValues(VariableValue, Value);
-                            }
-                            // Divide variable by value
-                            else if (Command == "J") {
-                                Variables[VariableIdentifier] = DivideValues(VariableValue, Value);
-                            }
+                            Variables[VariableIdentifier] = VariableOperationCommands[Command](VariableValue, Value);
                         }
                     }
                     CurrentLine++;
@@ -311,7 +305,7 @@ namespace gotochan
             }
         }
 
-        public void DisplayCompiledCode() {
+        public void DisplayParsedCommands(List<object[]> Commands) {
             int CommandNumber = -1;
             foreach (object[] CommandInfo in Commands) {
                 CommandNumber++;
@@ -385,7 +379,7 @@ namespace gotochan
                 return Variables[Value];
             }
             // Empty variable
-            else if (Value.All(char.IsLetter)) {
+            else if (IsVariableOrLabelNameValid(Value)) {
                 return null;
             }
             // Unknown
@@ -396,17 +390,22 @@ namespace gotochan
         }
 
         private object AddValues(object Value1, object Value2) {
-            // Operate double and double
-            if (Value1.GetType() == typeof(double) && Value2.GetType() == typeof(double)) {
+            // Add string
+            if (Value1.GetType() == typeof(string) || Value2.GetType() == typeof(string)) {
+                return Value1.ToString() + Value2.ToString();
+            }
+            // Add double and double
+            else if (Value1.GetType() == typeof(double) && Value2.GetType() == typeof(double)) {
                 return (double)Value1 + (double)Value2;
             }
-            // Add object to string
+            // Error
             else {
-                return Value1.ToString() + Value2.ToString();
+                Error($"cannot add objects of type {Value1.GetType()} and {Value2.GetType()}.");
+                return false;
             }
         }
         private object SubtractValues(object Value1, object Value2) {
-            // Operate double and double
+            // Subtract double and double
             if (Value1.GetType() == typeof(double) && Value2.GetType() == typeof(double)) {
                 return (double)Value1 - (double)Value2;
             }
@@ -417,23 +416,46 @@ namespace gotochan
             }
         }
         private object MultiplyValues(object Value1, object Value2) {
-            return MultiplyDivideValues(Value1, Value2, true);
-        }
-        private object DivideValues(object Value1, object Value2) {
-            return MultiplyDivideValues(Value1, Value2, false);
-        }
-        private object MultiplyDivideValues(object Value1, object Value2, bool Multiply) {
+            // Multiply double and double
             if (Value1.GetType() == typeof(double) && Value2.GetType() == typeof(double)) {
-                if (Multiply == true) {
-                    return (double)Value1 * (double)Value2;
-                }
-                else {
-                    return (double)Value1 / (double)Value2;
-                }
+                return (double)Value1 * (double)Value2;
             }
             // Error
             else {
-                Error($"cannot {(Multiply == true ? "multiply" : "divide")} values of type '{Value1.GetType()}' and '{Value2.GetType()}'.");
+                Error($"cannot multiply values of type '{Value1.GetType()}' and '{Value2.GetType()}'.");
+                return false;
+            }
+        }
+        private object DivideValues(object Value1, object Value2) {
+            // Divide double and double
+            if (Value1.GetType() == typeof(double) && Value2.GetType() == typeof(double)) {
+                return (double)Value1 / (double)Value2;
+            }
+            // Error
+            else {
+                Error($"cannot divide values of type '{Value1.GetType()}' and '{Value2.GetType()}'.");
+                return false;
+            }
+        }
+        private object ModuloValues(object Value1, object Value2) {
+            // Modulo double and double
+            if (Value1.GetType() == typeof(double) && Value2.GetType() == typeof(double)) {
+                return (double)Value1 % (double)Value2;
+            }
+            // Error
+            else {
+                Error($"cannot modulo values of type '{Value1.GetType()}' and '{Value2.GetType()}'.");
+                return false;
+            }
+        }
+        private object ExponentiateValues(object Value1, object Value2) {
+            // Modulo double and double
+            if (Value1.GetType() == typeof(double) && Value2.GetType() == typeof(double)) {
+                return Math.Pow((double)Value1, (double)Value2);
+            }
+            // Error
+            else {
+                Error($"cannot exponentiate values of type '{Value1.GetType()}' and '{Value2.GetType()}'.");
                 return false;
             }
         }
@@ -488,6 +510,16 @@ namespace gotochan
                 Error($"unknown comparison operator: '{ComparisonOperator}'.");
             }
             return ComparisonResult;
+        }
+
+        private static bool IsVariableOrLabelNameValid(string VariableName) {
+            for (int i = 0; i < VariableName.Length; i++) {
+                if (char.IsLetter(VariableName[i]) || (i != 0 && char.IsDigit(VariableName[i]))) {
+                    continue;
+                }
+                return false;
+            }
+            return true;
         }
 
         internal void Error(string? Message = null) {

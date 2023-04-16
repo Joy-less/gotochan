@@ -21,13 +21,13 @@
             // Read the code
             string Code = File.ReadAllText(args[0]);
 
-            // Compile the code
+            // Parse the code
             Gotochan GotochanInstance = new();
-            GotochanInstance.Compile(Code);
+            List<object[]> Commands = GotochanInstance.Parse(Code);
 
             // Run the code
             ClearInput();
-            GotochanInstance.Run().Wait();
+            GotochanInstance.Run(Commands).Wait();
 
             // End of code, wait for user to press enter
             Console.WriteLine("\n");
@@ -40,12 +40,12 @@
                 Console.ReadKey(true);
             }
         }
-        private static void CompileBenchmark(string Code) {
-            Gotochan GotochanInstance = new();
+        private static void ParseBenchmark(string Code) {
             long StartTime = DateTimeOffset.Now.ToUnixTimeMilliseconds(); // Start benchmark
-            GotochanInstance.Compile(Code);
-            GotochanInstance.DisplayCompiledCode();
-            Console.WriteLine($"Compiled in {(DateTimeOffset.Now.ToUnixTimeMilliseconds() - StartTime) / 1000d} seconds."); // End benchmark
+            Gotochan GotochanInstance = new();
+            List<object[]> Commands = GotochanInstance.Parse(Code);
+            GotochanInstance.DisplayParsedCommands(Commands);
+            Console.WriteLine($"Parsed in {(DateTimeOffset.Now.ToUnixTimeMilliseconds() - StartTime) / 1000d} seconds."); // End benchmark
             Console.WriteLine("-------------------------");
         }
     }
