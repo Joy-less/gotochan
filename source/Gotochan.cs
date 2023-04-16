@@ -25,6 +25,16 @@ namespace gotochan
         public List<object[]> Parse(string Code) {
             Reset();
             List<object[]> Commands = new();
+
+            Dictionary<string, string> VariableOperationCommands = new() {
+                {"+=", "G"},
+                {"-=", "H"},
+                {"*=", "I"},
+                {"/=", "J"},
+                {"%=", "K"},
+                {"^=", "L"},
+            };
+
             // Remove carriage returns
             Code = Code.Replace("\r", "");
             // Remove tabs
@@ -178,17 +188,9 @@ namespace gotochan
                                         Commands.Add(new object[] {"F", Command, Value});
                                     }
                                 }
+                                // Add / Subtract / Multiply / Divide / Modulo / Exponentiate
                                 else {
-                                    // Add / Subtract / Multiply / Divide / Modulo / Exponentiate
-                                    Dictionary<string, string> Functions = new() {
-                                        {"+=", "G"},
-                                        {"-=", "H"},
-                                        {"*=", "I"},
-                                        {"/=", "J"},
-                                        {"%=", "K"},
-                                        {"^=", "L"},
-                                    };
-                                    if (Functions.TryGetValue(Words[1], out string Function)) {
+                                    if (VariableOperationCommands.TryGetValue(Words[1], out string Function)) {
                                         Commands.Add(new object[] {Function, Command, Value});
                                     }
                                     else {
